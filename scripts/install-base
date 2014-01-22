@@ -1,12 +1,6 @@
 #!/bin/sh
 
 APP_USER_PASSWORD=app
-MYSQL_PASSWORD=app
-
-
-export DEBIAN_FRONTEND=noninteractive
-
-echo "deb http://archive.ubuntu.com/ubuntu/ raring main universe" >> /etc/apt/sources.list
 
 apt-get update
 apt-get upgrade
