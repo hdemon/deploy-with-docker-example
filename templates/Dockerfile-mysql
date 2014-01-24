@@ -7,8 +7,8 @@ RUN apt-get upgrade -y
 
 # replace PASSWORD
 RUN export DEBIAN_FRONTEND=noninteractive
-RUN echo mysql-server mysql-server/root_password password eudaimonia | debconf-set-selections
-RUN echo mysql-server mysql-server/root_password_again password eudaimonia | debconf-set-selections
+RUN echo mysql-server mysql-server/root_password password REPLACEME | debconf-set-selections
+RUN echo mysql-server mysql-server/root_password_again password REPLACEME | debconf-set-selections
 
 RUN apt-get install -y \
   mysql-server \
