@@ -18,9 +18,11 @@ def create_basement_image():
   image = Image("basement", destination_file)
   image.build()
   sudo("rm -rf ./tmp")
+  image.image_id()
 
 
 def create_mysql_image():
+  context = { "parent_image_id": Image.image_id("basement")[0], "root_password": "" }
   source_file = './templates/Dockerfile-mysql'
   destination_file = './tmp/Dockerfile'
 
@@ -30,6 +32,7 @@ def create_mysql_image():
   image = Image("mysql", destination_file)
   image.build()
   sudo("rm -rf ./tmp")
+  image.image_id()
 
 
 def create_web_basement_image():
@@ -45,9 +48,10 @@ def create_web_basement_image():
   image = Image("web-basement", destination_file)
   image.build()
   sudo("rm -rf ./tmp")
+  image.image_id()
 
 
-def create_web_basement_image():
+def create_web_app_image():
   context = { "parent_image_id": Image.image_id("web-basement")[0] }
   source_file = './templates/Dockerfile-web-app'
   destination_file = './tmp/Dockerfile'
@@ -58,6 +62,7 @@ def create_web_basement_image():
   image = Image("web-basement", destination_file)
   image.build()
   sudo("rm -rf ./tmp")
+  image.image_id()
 
 
 def remove_all_images():
