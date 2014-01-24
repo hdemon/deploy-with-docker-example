@@ -22,6 +22,7 @@ RUN apt-get install -y \
   automake \
   libtool \
   bison \
+  build-essential \
 
   libreadline6 \
   libreadline-dev \
