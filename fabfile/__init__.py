@@ -5,68 +5,71 @@ import os
 
 
 def deploy():
-  create_web_app_image()
+  remove_images("web-app")
+  image = create_web_app_image()
+  image.run()
+  # stop_old_web_app_container()
 
 
 def create_basement_image():
   source_file = './templates/Dockerfile-basement'
   destination_file = './tmp/Dockerfile'
 
-  sudo("mkdir -p ./tmp")
+  run("mkdir -p ./tmp")
   files.upload_template(source_file, destination_file, mode=0777)
 
   image = Image("basement", destination_file)
   image.build()
-  sudo("rm -rf ./tmp")
-  image.image_id()
+  run("rm -rf ./tmp")
+  return image
 
 
 def create_mysql_image():
-  context = { "parent_image_id": Image.image_id("basement")[0], "root_password": "" }
+  context = { "parent_image_id": Image.image_id_of("basement")[0], "root_password": "" }
   source_file = './templates/Dockerfile-mysql'
   destination_file = './tmp/Dockerfile'
 
-  sudo("mkdir -p ./tmp")
+  run("mkdir -p ./tmp")
   files.upload_template(source_file, destination_file, mode=0777)
 
   image = Image("mysql", destination_file)
   image.build()
-  sudo("rm -rf ./tmp")
-  image.image_id()
+  run("rm -rf ./tmp")
+  return image
 
 
 def create_web_basement_image():
-  context = { "parent_image_id": Image.image_id("basement")[0] }
+  context = { "parent_image_id": Image.image_id_of("basement")[0] }
   source_file = './templates/Dockerfile-web-server'
   destination_file = './tmp/Dockerfile'
 
-  sudo("mkdir -p ./tmp")
+  run("mkdir -p ./tmp")
   files.upload_template(source_file, destination_file, context=context, mode=0777)
   files.upload_template("./templates/nginx/default", "./tmp/default", mode=0644)
   files.upload_template("./templates/nginx/default-ssl", "./tmp/default-ssl", mode=0644)
 
   image = Image("web-basement", destination_file)
   image.build()
-  sudo("rm -rf ./tmp")
-  image.image_id()
+  run("rm -rf ./tmp")
+  return image
 
 
 def create_web_app_image():
-  context = { "parent_image_id": Image.image_id("web-basement")[0] }
+  context = { "parent_image_id": Image.image_id_of("web-basement")[0] }
   source_file = './templates/Dockerfile-web-app'
   destination_file = './tmp/Dockerfile'
 
-  sudo("mkdir -p ./tmp")
+  run("mkdir -p ./tmp")
   files.upload_template(source_file, destination_file, context=context, mode=0777)
 
-  image = Image("web-basement", destination_file)
+  image = Image("web-app", destination_file)
   image.build()
-  sudo("rm -rf ./tmp")
-  image.image_id()
+  run("rm -rf ./tmp")
+  return image
 
 
 def remove_all_images():
-  remove_containers_of(repository_name)
+  remove_all_containers_of(repository_name)
   sudo('docker rmi $(sudo docker images -q)')
 
 def remove_images_without_latest_one(repository_name):
@@ -75,11 +78,23 @@ def remove_images_without_latest_one(repository_name):
 
 def remove_images(repository_name, tag = None):
   for image_id in Image.image_id_of(repository_name, tag):
-    remove_containers_of(repository_name, tag)
+    remove_all_containers_of(repository_name, tag)
     sudo("docker rmi %s" % (image_id))
 
 def remove_all_containers():
   sudo('docker rm $(sudo docker ps -a -q)')
+
+
+def remove_all_containers_of(repository_name, tag):
+  try:
+    sudo('docker rm $(sudo docker ps -a | grep %s | awk \'{ print $1 }\')' % repository_name)
+  except:
+    print
+  return
+
+
+def timestamp():
+  return datetime.datetime.today().strftime("%Y%m%d%H%M%S")
 
 
 class Image:
@@ -92,7 +107,15 @@ class Image:
     self.tag = self.timestamp()
     sudo("docker build -no-cache -t %s:%s %s" % (self.repository_name, self.tag, self.dockerfile_directory))
 
-  def run(self):
+  def run(self, port_maps=None):
+    port_forwarding_options = ""
+
+    if port_maps != None:
+      for map in port_maps:
+        port_forwarding_options += "-p %s:%s " % (map.host, map.container)
+
+    sudo("docker run -i -d -t %s %s:%s" % (port_forwarding_options, self.repository_name, self.tag))
+
 
   def timestamp(self):
     return datetime.datetime.today().strftime("%Y%m%d%H%M%S")
@@ -122,7 +145,7 @@ class Image:
   #     return id_array
 
   @classmethod
-  def image_id(self, repository_name, tag = None):
+  def image_id_of(self, repository_name, tag = None):
     if tag == None:
       return sudo("docker images|grep -E \"^%s\"|awk '{print $3}'" % (repository_name)).split('\r\n')
     else:
