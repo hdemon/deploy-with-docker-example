@@ -2,16 +2,27 @@ from fabric.api import *
 from fabric.contrib import *
 import datetime
 import os
+from image import Image
+from container import Container
+from port_forwarder import PortForwarder
 
 
 def deploy():
-  remove_images("web-app")
-  image = create_web_app_image()
-  image.run()
-  # stop_old_web_app_container()
+  image = build_web_app_image()
+  container = image.run(port_maps=[{"container": 80}, {"container": 443}])
+
+  PortForwarder.kill()
+  for map in container.port_maps():
+    PortForwarder.map(host=80, mapped_to_container=map["host_port"])
 
 
-def create_basement_image():
+def test():
+  # print p.current_pid()
+  c = Container("0a8b51a1c69a")
+  print c.ip_address()
+  print c.port_maps()
+
+def build_basement_image():
   source_file = './templates/Dockerfile-basement'
   destination_file = './tmp/Dockerfile'
 
@@ -24,7 +35,7 @@ def create_basement_image():
   return image
 
 
-def create_mysql_image():
+def build_mysql_image():
   context = { "parent_image_id": Image.image_id_of("basement")[0], "root_password": "" }
   source_file = './templates/Dockerfile-mysql'
   destination_file = './tmp/Dockerfile'
@@ -38,7 +49,7 @@ def create_mysql_image():
   return image
 
 
-def create_web_basement_image():
+def build_web_basement_image():
   context = { "parent_image_id": Image.image_id_of("basement")[0] }
   source_file = './templates/Dockerfile-web-server'
   destination_file = './tmp/Dockerfile'
@@ -54,8 +65,8 @@ def create_web_basement_image():
   return image
 
 
-def create_web_app_image():
-  context = { "parent_image_id": Image.image_id_of("web-basement")[0] }
+def build_web_app_image():
+  context = { "parent_image_id": Image.image_id_of("web-basement")[0], "port_maps": [{container: 80}, {container: 443}] }
   source_file = './templates/Dockerfile-web-app'
   destination_file = './tmp/Dockerfile'
 
@@ -95,61 +106,6 @@ def remove_all_containers_of(repository_name, tag):
 
 def timestamp():
   return datetime.datetime.today().strftime("%Y%m%d%H%M%S")
-
-
-class Image:
-  def __init__(self, repository_name, dockerfile_path):
-    self.tag = None
-    self.repository_name = repository_name
-    self.dockerfile_directory = "/".join(dockerfile_path.split("/")[::-1][1:][::-1])
-
-  def build(self):
-    self.tag = self.timestamp()
-    sudo("docker build -no-cache -t %s:%s %s" % (self.repository_name, self.tag, self.dockerfile_directory))
-
-  def run(self, port_maps=None):
-    port_forwarding_options = ""
-
-    if port_maps != None:
-      for map in port_maps:
-        port_forwarding_options += "-p %s:%s " % (map.host, map.container)
-
-    sudo("docker run -i -d -t %s %s:%s" % (port_forwarding_options, self.repository_name, self.tag))
-
-
-  def timestamp(self):
-    return datetime.datetime.today().strftime("%Y%m%d%H%M%S")
-
-  def image_id(self):
-    return sudo("docker images|grep -E \"^%s\s+%s\"|awk '{print $3}'" % (self.repository_name, self.tag))
-
-  def container_id(self):
-    id_array = sudo("docker ps -a|grep %s:%s|awk '{print $1}'" % (self.repository_name, self.tag)).split("\r\n")
-
-    if len(id_array) == 0:
-      return None
-    elif len(id_array) == 1:
-      return id_array[0]
-    else:
-      return id_array
-
-  # @classmethod
-  # def container_ids_of(self, image_id_or_repository_name):
-  #   id_array = sudo("docker ps -a|grep %s|awk '{print $1}'" % image_id_or_repository_name).split("\r\n")
-
-  #   if len(id_array) == 0:
-  #     return None
-  #   elif len(id_array) == 1:
-  #     return id_array[0]
-  #   else:
-  #     return id_array
-
-  @classmethod
-  def image_id_of(self, repository_name, tag = None):
-    if tag == None:
-      return sudo("docker images|grep -E \"^%s\"|awk '{print $3}'" % (repository_name)).split('\r\n')
-    else:
-      return sudo("docker images|grep -E \"^%s\s+%s\"|awk '{print $3}'" % (repository_name, tag)).split('\r\n')[0]
 
 
 def install_docker():
