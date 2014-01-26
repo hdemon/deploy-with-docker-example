@@ -13,14 +13,8 @@ def deploy():
 
   PortForwarder.kill()
   for map in container.port_maps():
-    PortForwarder.map(host=80, mapped_to_container=map["host_port"])
+    PortForwarder.map(host=map["container_ip"], mapped_to_container=map["host_port"])
 
-
-def test():
-  # print p.current_pid()
-  c = Container("0a8b51a1c69a")
-  print c.ip_address()
-  print c.port_maps()
 
 def build_basement_image():
   source_file = './templates/Dockerfile-basement'
