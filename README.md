@@ -34,7 +34,7 @@ fab install_docker -h 192.168.33.12
 ## Usage
 
 First, you should create basement image. This image includes basic packages.
-The basement image shouldn't be build in the absence of updating basic packages.
+You don't have to build this image in the absence of updating basic packages.
 
 And 'web_basement' image inherits this image's environment. So you can reduce the time to build the basic packages each time. For your information, this image includes the packages to operate web server, like nginx and mysql-client.
 
