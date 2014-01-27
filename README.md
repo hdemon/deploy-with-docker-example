@@ -1,6 +1,6 @@
 ## Preparation
 
-1. Configure .ssh/config
+### Configure .ssh/config
 
 if you have not configured ~/.ssh/config to connect vagrant vm, add the following code to that file.
 
@@ -18,14 +18,14 @@ or you can run fabric with the following option every time.
 fab hoge -h 192.168.33.12 -u vagrant -i ~/.ssh/.vagrant.d/insecure_private_key
 ```
 
-2. Install fabric and start vm.
+### Install fabric and start vm
 
 ```
 pip install fabric
 vagrant up
 ```
 
-3. Install docker to the vm.
+### Install docker to the vm
 
 ```
 fab install_docker
